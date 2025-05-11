@@ -14,9 +14,9 @@ from .forms import UserEditForm, CommentForm, PostForm
 from .models import Post, Category, Comment
 
 
-def published_posts(base_qs):
+def published_posts(base_queryset):
     return (
-        base_qs.filter(
+        base_queryset.filter(
             is_published=True,
             pub_date__lte=timezone.now(),
             category__is_published=True,
@@ -35,8 +35,8 @@ def paginate(request, queryset, per_page):
 
 def index(request):
     template = 'blog/index.html'
-    qs = published_posts(Post.objects.all())
-    page_obj = paginate(request, qs, per_page=10)
+    queryset = published_posts(Post.objects.all())
+    page_obj = paginate(request, queryset, per_page=10)
     return render(request, template, {'page_obj': page_obj})
 
 
@@ -46,8 +46,8 @@ def category_posts(request, category_slug):
         Category.objects.filter(is_published=True),
         slug=category_slug
     )
-    qs = published_posts(Post.objects.filter(category=category))
-    page_obj = paginate(request, qs, per_page=10)
+    queryset = published_posts(Post.objects.filter(category=category))
+    page_obj = paginate(request, queryset, per_page=10)
 
     return render(request, template, {
         'page_obj': page_obj,
