@@ -20,6 +20,7 @@ class UserEditForm(UserChangeForm):
             'email'
         )
 
+
 class PostForm(forms.ModelForm):
     class Meta:
         model = Post

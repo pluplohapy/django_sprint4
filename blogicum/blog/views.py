@@ -15,13 +15,12 @@ from .models import Post, Category, Comment
 
 
 def published_posts(base_qs):
-    return (base_qs
-        .filter(
+    return (
+        base_qs.filter(
             is_published=True,
             pub_date__lte=timezone.now(),
             category__is_published=True,
-            location__is_published=True,
-        )
+            location__is_published=True)
         .select_related('author', 'category', 'location')
         .annotate(comment_count=Count('comments'))
         .order_by('-pub_date')
@@ -60,7 +59,10 @@ def profile(request, username):
     template = 'blog/profile.html'
 
     user = get_object_or_404(User, username=username)
-    posts = Post.objects.filter(author=user).annotate(comment_count=Count('comments')).order_by('-pub_date')
+    posts = (Post.objects
+             .filter(author=user)
+             .annotate(comment_count=Count('comments'))
+             .order_by('-pub_date'))
     if not request.user.is_authenticated or request.user != user:
         posts = posts.filter(is_published=True, pub_date__lte=timezone.now())
 
@@ -95,14 +97,13 @@ def post_detail(request, post_id):
         raise Http404("Пост еще не опубликован.")
 
     is_visible = (
-            post.is_published
-            and post.category.is_published
-            and post.location.is_published
+        post.is_published
+        and post.category.is_published
+        and post.location.is_published
     )
 
     if not is_visible and not is_author:
         raise Http404("Пост недоступен.")
-
 
     comments = Comment.objects.filter(
         is_published=True,
@@ -129,7 +130,10 @@ class PostCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
     def get_success_url(self):
-        return reverse_lazy('blog:profile', kwargs={'username': self.request.user.username})
+        return reverse_lazy(
+            'blog:profile',
+            kwargs={'username': self.request.user.username}
+        )
 
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
@@ -141,7 +145,8 @@ class PostDeleteView(LoginRequiredMixin, DeleteView):
         self.object = self.get_object()
         user = request.user
 
-        if not user.is_authenticated or (user != self.object.author and not user.is_staff):
+        if (not user.is_authenticated
+                or (user != self.object.author and not user.is_staff)):
             return redirect('blog:post_detail', post_id=self.object.pk)
         return super().dispatch(request, *args, **kwargs)
 
@@ -155,17 +160,20 @@ class PostEditView(LoginRequiredMixin, UpdateView):
     form_class = PostForm
     template_name = 'blog/create.html'
 
-
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
 
-        if not request.user.is_authenticated or request.user != self.object.author:
+        if (not request.user.is_authenticated
+                or request.user != self.object.author):
             return redirect('blog:post_detail', post_id=self.object.pk)
 
         return super().dispatch(request, *args, **kwargs)
 
     def get_success_url(self):
-        return reverse_lazy('blog:post_detail', kwargs={'post_id': self.object.pk})
+        return reverse_lazy(
+            'blog:post_detail',
+            kwargs={'post_id': self.object.pk}
+        )
 
 
 @login_required
@@ -185,7 +193,12 @@ def add_comment(request, post_id):
 @login_required
 def edit_comment(request, post_id, comment_id):
     template_name = 'blog/comment.html'
-    comment = get_object_or_404(Comment, pk=comment_id, post_id=post_id, author=request.user)
+    comment = get_object_or_404(
+        Comment,
+        pk=comment_id,
+        post_id=post_id,
+        author=request.user
+    )
     form = CommentForm(request.POST or None, instance=comment)
 
     if form.is_valid():
@@ -198,7 +211,12 @@ def edit_comment(request, post_id, comment_id):
 @login_required
 def delete_comment(request, post_id, comment_id):
     template_name = 'blog/comment.html'
-    comment = get_object_or_404(Comment, pk=comment_id, post_id=post_id, author=request.user)
+    comment = get_object_or_404(
+        Comment,
+        pk=comment_id,
+        post_id=post_id,
+        author=request.user
+    )
 
     if request.method == 'POST':
         comment.delete()
